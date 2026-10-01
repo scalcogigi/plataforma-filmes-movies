@@ -1,5 +1,11 @@
 # Plataforma de Filmes — Movies Service
 
+## Testes automatizados
+
+Na pasta `filmes`, execute `./mvnw.cmd clean test` no Windows ou `sh mvnw clean test`
+no Linux/macOS, com JDK 21 ou superior. O relatório de cobertura fica em
+`filmes/tests/index.html`. Veja [cenários e configuração dos testes](filmes/TESTES.md).
+
 API REST responsável pelo gerenciamento do catálogo de filmes da plataforma, incluindo dados cinematográficos, elenco, classificação indicativa, avaliação e disponibilidade em serviços de streaming. O serviço foi desenvolvido com Java e Spring Boot, seguindo uma arquitetura em camadas, separação de responsabilidades, validação de entrada, persistência relacional e tratamento centralizado de erros.
 
 > Este repositório contém o serviço de filmes. As funcionalidades relacionadas a usuários, recomendações personalizadas e integração automática com provedores de streaming serão incorporadas em etapas posteriores.
