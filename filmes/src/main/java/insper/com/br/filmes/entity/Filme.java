@@ -52,6 +52,12 @@ public class Filme implements Redirect {
     @Builder.Default
     private Map<String, String> plataformasDisponiveis = new HashMap<>();
 
+    @Column (nullable = false)
+    private String sinopse;
+
+    @Column (nullable = false)
+    private long views;
+
     @Column(nullable = false)
     private Integer classificacaoIndicativa;
 
@@ -86,6 +92,10 @@ public class Filme implements Redirect {
 
     public void deletar() {
         ativo = false;
+    }
+
+    public void incrementarViews() {
+        views++;
     }
 
     @Override
