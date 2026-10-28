@@ -15,6 +15,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.Map;
 
@@ -25,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@WithMockUser
 class FilmeControllerTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
@@ -34,6 +37,12 @@ class FilmeControllerTest {
     void limparBanco() {
         repository.deleteAll();
     }
+
+    @Test
+        @WithAnonymousUser
+        void deveExigirAutenticacao() throws Exception {
+        mvc.perform(get("/filmes")).andExpect(status().isUnauthorized());
+}
 
     @Test
     void deveExecutarCicloCompletoComPersistenciaEExclusaoLogica() throws Exception {
