@@ -1,5 +1,13 @@
 # Plataforma de Filmes — Movies Service
 
+## Catálogo, TMDB e avaliações
+
+Defina `TMDB_API_KEY` no ambiente do serviço para habilitar a importação. `GET /catalogo/pesquisar?termo=...` consulta primeiro os títulos existentes no PostgreSQL. Quando não encontra, pesquisa filmes e séries na fonte externa e salva até cinco resultados individualmente, incluindo até cinco links de trailers do YouTube. A chave `tipo:tmdbId` e a combinação título/data evitam duplicatas. Para uma carga inicial de até 40 títulos, configure `CATALOG_SEED_COUNT=20` antes da primeira execução com banco vazio; também é possível chamar `POST /catalogo/populares?quantidade=20` com token Auth0.
+
+`GET /filmes/{id}/avaliacoes` lista avaliações publicamente. `PUT /filmes/{id}/avaliacoes/me` grava ou atualiza a nota e o comentário do usuário autenticado (`{ "nota": 8.5, "comentario": "Gostei do filme." }`). Filmes, séries e avaliações são lidos publicamente; cadastro manual, carga de populares e avaliações pessoais exigem autenticação. Configure `FRONTEND_ORIGIN=http://localhost:5173` caso use outra origem no front.
+
+O feed da comunidade usa `GET /comunidade/publicacoes` (público), `POST /comunidade/publicacoes`, `POST /comunidade/publicacoes/{id}/comentarios` e `PUT /comunidade/publicacoes/{id}/curtida` ou `/salvo` (com JWT). Os posts de exemplo são salvos uma vez quando a tabela está vazia; novas interações têm contagens reais no banco.
+
 ## Testes automatizados
 
 Na pasta `filmes`, execute `./mvnw.cmd clean test` no Windows ou `sh mvnw clean test`

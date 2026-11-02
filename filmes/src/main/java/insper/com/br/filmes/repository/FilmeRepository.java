@@ -17,4 +17,7 @@ public interface FilmeRepository
         );
 
     Optional<Filme> findByIdAndAtivoTrue(Long id);
+    Optional<Filme> findByChaveTmdb(String chaveTmdb);
+    List<Filme> findByAtivoTrueAndNomeContainingIgnoreCaseOrderByNomeAsc(String nome);
+    Optional<Filme> findByAtivoTrueAndNomeIgnoreCaseAndLancamento(String nome, java.time.LocalDate lancamento);
 }

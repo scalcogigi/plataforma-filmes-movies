@@ -24,6 +24,24 @@ public class Filme implements Redirect {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
+    private String chaveTmdb;
+
+    private String tipo;
+
+    @Column(length = 4000)
+    private String sinopse;
+
+    private String imagem;
+
+    private String trailerUrl;
+
+    @ElementCollection
+    @CollectionTable(name = "filme_trailers", joinColumns = @JoinColumn(name = "filme_id"))
+    @Column(name = "url")
+    @Builder.Default
+    private List<String> trailerUrls = new ArrayList<>();
+
     @Column(nullable = false)
     private String nome;
 

@@ -41,6 +41,10 @@ public class SecurityConfig {
                                         "/**"
                                 ).permitAll()
                                 .requestMatchers("/error").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/filmes", "/filmes/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/catalogo/pesquisar").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/filmes/{id}/avaliacoes").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/comunidade/publicacoes").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(resourceServer ->

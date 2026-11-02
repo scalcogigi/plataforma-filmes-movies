@@ -182,7 +182,12 @@ public class FilmeService {
             filme.getClassificacaoIndicativa(),
             filme.getDuracao(),
             filme.getGenero(),
-            filme.getAvaliacao()
+            filme.getAvaliacao(),
+            filme.getTipo() == null ? "filme" : filme.getTipo(),
+            filme.getSinopse() == null ? "" : filme.getSinopse(),
+            filme.getImagem() == null ? "" : filme.getImagem(),
+            filme.getTrailerUrl() == null ? "" : filme.getTrailerUrl(),
+            filme.getTrailerUrls() == null ? List.of() : List.copyOf(filme.getTrailerUrls())
         );
     }
 
