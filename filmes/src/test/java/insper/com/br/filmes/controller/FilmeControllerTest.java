@@ -15,19 +15,17 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
-import org.springframework.security.test.context.support.WithAnonymousUser;
-import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@WithMockUser
 class FilmeControllerTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
@@ -39,14 +37,14 @@ class FilmeControllerTest {
     }
 
     @Test
-        @WithAnonymousUser
-        void deveExigirAutenticacao() throws Exception {
-        mvc.perform(get("/filmes")).andExpect(status().isUnauthorized());
-}
+    void deveExigirAutenticacao() throws Exception {
+        mvc.perform(get("/filmes")).andExpect(status().isOk());
+        mvc.perform(post("/filmes")).andExpect(status().isUnauthorized());
+    }
 
     @Test
     void deveExecutarCicloCompletoComPersistenciaEExclusaoLogica() throws Exception {
-        String body = mvc.perform(post("/filmes").contentType("application/json")
+        String body = mvc.perform(post("/filmes").with(jwt()).contentType("application/json")
                         .content(mapper.writeValueAsString(FilmeFixtures.request())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
@@ -73,7 +71,7 @@ class FilmeControllerTest {
         FilmeRequest updated = new FilmeRequest(" Novo filme ", " Nova diretora ", java.util.List.of("Novo ator"),
                 java.time.LocalDate.of(2020, 1, 2), Map.of("Max", "https://example.com/novo"),
                 12, 120, " Drama ", new java.math.BigDecimal("9.0"));
-        mvc.perform(put("/filmes/{id}", id).contentType("application/json")
+        mvc.perform(put("/filmes/{id}", id).with(jwt()).contentType("application/json")
                         .content(mapper.writeValueAsString(updated)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$.nome").value("Novo filme"))
@@ -87,10 +85,10 @@ class FilmeControllerTest {
                 .andExpect(jsonPath("$.plataformasDisponiveis.Netflix").doesNotExist());
         mvc.perform(get("/filmes/{id}", id)).andExpect(jsonPath("$.nome").value("Novo filme"));
 
-        mvc.perform(patch("/filmes/{id}/avaliacao", id).contentType("application/json")
+        mvc.perform(patch("/filmes/{id}/avaliacao", id).with(jwt()).contentType("application/json")
                         .content("{\"avaliacao\":10}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.avaliacao").value(10));
-        mvc.perform(put("/filmes/{id}/streamings", id).contentType("application/json")
+        mvc.perform(put("/filmes/{id}/streamings", id).with(jwt()).contentType("application/json")
                         .content("{\"plataformasDisponiveis\":{\"Prime\":\"https://example.com/prime\"}}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.plataformasDisponiveis.Prime").value("https://example.com/prime"))
@@ -100,17 +98,17 @@ class FilmeControllerTest {
         mvc.perform(get("/filmes/{id}", id)).andExpect(jsonPath("$.avaliacao").value(10))
                 .andExpect(jsonPath("$.plataformasDisponiveis.Prime").value("https://example.com/prime"));
 
-        mvc.perform(delete("/filmes/{id}", id)).andExpect(status().isNoContent())
+        mvc.perform(delete("/filmes/{id}", id).with(jwt())).andExpect(status().isNoContent())
                 .andExpect(content().string(""));
         assertThat(repository.findById(id)).get().extracting(Filme::getAtivo).isEqualTo(false);
         mvc.perform(get("/filmes")).andExpect(status().isOk()).andExpect(content().json("[]"));
         mvc.perform(get("/filmes/{id}", id)).andExpect(status().isNotFound());
-        mvc.perform(delete("/filmes/{id}", id)).andExpect(status().isNotFound());
-        mvc.perform(patch("/filmes/{id}/avaliacao", id).contentType("application/json")
+        mvc.perform(delete("/filmes/{id}", id).with(jwt())).andExpect(status().isNotFound());
+        mvc.perform(patch("/filmes/{id}/avaliacao", id).with(jwt()).contentType("application/json")
                 .content("{\"avaliacao\":5}")).andExpect(status().isNotFound());
-        mvc.perform(put("/filmes/{id}", id).contentType("application/json")
+        mvc.perform(put("/filmes/{id}", id).with(jwt()).contentType("application/json")
                 .content(mapper.writeValueAsString(r))).andExpect(status().isNotFound());
-        mvc.perform(put("/filmes/{id}/streamings", id).contentType("application/json")
+        mvc.perform(put("/filmes/{id}/streamings", id).with(jwt()).contentType("application/json")
                 .content("{\"plataformasDisponiveis\":{}}")).andExpect(status().isNotFound());
         mvc.perform(get("/filmes/{id}/redirect", id).param("plataforma", "Prime"))
                 .andExpect(status().isNotFound());
@@ -143,10 +141,10 @@ class FilmeControllerTest {
         ObjectNode json = mapper.valueToTree(FilmeFixtures.request());
         json.remove(field);
         String body = mapper.writeValueAsString(json);
-        mvc.perform(post("/filmes").contentType("application/json").content(body))
+        mvc.perform(post("/filmes").with(jwt()).contentType("application/json").content(body))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.campos." + field).isNotEmpty())
                 .andExpect(jsonPath("$.erro").value("Erro de validação"));
-        mvc.perform(put("/filmes/1").contentType("application/json").content(body))
+        mvc.perform(put("/filmes/1").with(jwt()).contentType("application/json").content(body))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.campos." + field).isNotEmpty());
         assertThat(repository.count()).isZero();
     }
@@ -161,7 +159,7 @@ class FilmeControllerTest {
             case "classificacaoIndicativa", "avaliacao" -> json.put(field, -1);
             default -> json.put(field, "   ");
         }
-        mvc.perform(post("/filmes").contentType("application/json").content(mapper.writeValueAsString(json)))
+        mvc.perform(post("/filmes").with(jwt()).contentType("application/json").content(mapper.writeValueAsString(json)))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.campos." + field).isNotEmpty());
         assertThat(repository.count()).isZero();
     }
@@ -170,7 +168,7 @@ class FilmeControllerTest {
     @ValueSource(strings = {"null", "-0.1", "10.1"})
     void deveRejeitarAvaliacaoForaDosLimitesOuNula(String value) throws Exception {
         long id = repository.save(FilmeFixtures.filme()).getId();
-        mvc.perform(patch("/filmes/{id}/avaliacao", id).contentType("application/json")
+        mvc.perform(patch("/filmes/{id}/avaliacao", id).with(jwt()).contentType("application/json")
                         .content("{\"avaliacao\":" + value + "}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.campos.avaliacao").isNotEmpty());
         assertThat(repository.findById(id).orElseThrow().getAvaliacao()).isEqualByComparingTo("8.7");
@@ -180,7 +178,7 @@ class FilmeControllerTest {
     @ValueSource(strings = {"0", "10"})
     void deveAceitarLimitesDaAvaliacao(String value) throws Exception {
         long id = repository.save(FilmeFixtures.filme()).getId();
-        mvc.perform(patch("/filmes/{id}/avaliacao", id).contentType("application/json")
+        mvc.perform(patch("/filmes/{id}/avaliacao", id).with(jwt()).contentType("application/json")
                         .content("{\"avaliacao\":" + value + "}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.avaliacao").value(Integer.parseInt(value)));
     }
@@ -190,7 +188,7 @@ class FilmeControllerTest {
             "{\"plataformasDisponiveis\":{\"\":\"https://example.com\"}}",
             "{\"plataformasDisponiveis\":{\"Netflix\":\" \"}}"})
     void deveValidarNomeEUrlDosStreamings(String body) throws Exception {
-        mvc.perform(put("/filmes/1/streamings").contentType("application/json").content(body))
+        mvc.perform(put("/filmes/1/streamings").with(jwt()).contentType("application/json").content(body))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.erro").value("Erro de validação"))
                 .andExpect(jsonPath("$.campos").isNotEmpty());
     }
@@ -198,7 +196,7 @@ class FilmeControllerTest {
     @Test
     void deveRejeitarProtocoloInvalidoSemAlterarStreamings() throws Exception {
         long id = repository.save(FilmeFixtures.filme()).getId();
-        mvc.perform(put("/filmes/{id}/streamings", id).contentType("application/json")
+        mvc.perform(put("/filmes/{id}/streamings", id).with(jwt()).contentType("application/json")
                         .content("{\"plataformasDisponiveis\":{\"Max\":\"ftp://example.com\"}}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensagem").value("URL inválida para a plataforma Max"));
@@ -209,7 +207,7 @@ class FilmeControllerTest {
     @Test
     void devePermitirRemoverTodosOsStreamings() throws Exception {
         long id = repository.save(FilmeFixtures.filme()).getId();
-        mvc.perform(put("/filmes/{id}/streamings", id).contentType("application/json")
+        mvc.perform(put("/filmes/{id}/streamings", id).with(jwt()).contentType("application/json")
                         .content("{\"plataformasDisponiveis\":{}}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.plataformasDisponiveis").isEmpty());
         mvc.perform(get("/filmes/{id}/redirect", id).param("plataforma", "Netflix"))

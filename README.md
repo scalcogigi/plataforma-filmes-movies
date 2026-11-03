@@ -1,5 +1,37 @@
 # Plataforma de Filmes — Movies Service
 
+## Deploy na AWS
+
+O workflow `.github/workflows/deploy.yml` executa os testes em pull requests e na branch
+`main`. Ele exige 80% de cobertura de instruções no JaCoCo antes de publicar a imagem no
+Docker Hub e atualizar `movies-service` na AWS por SSH. O contêiner usa a rede Docker
+`rede` compartilhada com Users e escuta na porta 8081. O banco PostgreSQL permanece
+em um volume próprio e não é publicado na internet.
+
+Antes do primeiro deploy, crie a rede no servidor (`docker network create rede`, se
+ela ainda não existir) e suba o PostgreSQL usando `deploy/postgres.compose.yml`.
+Defina `DB_USER` e `DB_PASSWORD` no ambiente do servidor ou em um arquivo de ambiente
+que permaneça apenas no servidor; execute `docker compose -f postgres.compose.yml up -d --wait`
+na pasta que contém esse arquivo. O banco deve estar acessível pelo nome
+`postgres-filmes` na rede `rede` e usar `filmesdb` como nome do banco.
+
+Cadastre estes GitHub Actions secrets **no repositório Movies**:
+
+| Secret | Uso |
+| --- | --- |
+| `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | Publicar a imagem |
+| `AWS_HOST`, `AWS_USER`, `AWS_PRIVATE_KEY` | Acessar o servidor por SSH |
+| `DB_USER`, `DB_PASSWORD` | Mesmos valores do PostgreSQL no servidor |
+| `TMDB_API_KEY` | Importar títulos e trailers |
+| `AUTH0_ISSUER_URI`, `AUTH0_AUDIENCE`, `AUTH0_JWK_SET_URI` | Validar tokens Auth0 |
+| `FRONTEND_ORIGIN` | Origem HTTPS do front publicado na Vercel |
+
+Em `AUTH0_AUDIENCE`, use `https://api.plataforma-filmes`. O issuer deve terminar com
+`/`. A imagem publicada só é atualizada após um push em `main` que passe nos testes
+e no limite de cobertura. O fluxo de deploy verifica `GET /filmes` na porta 8081;
+se o serviço não responder, o job falha. Configure o DNS, HTTPS e as URLs públicas
+do front separadamente antes de disponibilizar a aplicação aos usuários.
+
 ## Catálogo, TMDB e avaliações
 
 Defina `TMDB_API_KEY` no ambiente do serviço para habilitar a importação. `GET /catalogo/pesquisar?termo=...` consulta primeiro os títulos existentes no PostgreSQL. Quando não encontra, pesquisa filmes e séries na fonte externa e salva até cinco resultados individualmente, incluindo até cinco links de trailers do YouTube. A chave `tipo:tmdbId` e a combinação título/data evitam duplicatas. Para uma carga inicial de até 40 títulos, configure `CATALOG_SEED_COUNT=20` antes da primeira execução com banco vazio; também é possível chamar `POST /catalogo/populares?quantidade=20` com token Auth0.
