@@ -102,3 +102,4 @@ jobs:
             done
             docker logs --tail 60 movies-service
             exit 1
+
