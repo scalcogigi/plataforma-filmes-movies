@@ -32,6 +32,17 @@ e no limite de cobertura. O fluxo de deploy verifica `GET /filmes` na porta 8081
 se o serviço não responder, o job falha. Configure o DNS, HTTPS e as URLs públicas
 do front separadamente antes de disponibilizar a aplicação aos usuários.
 
+### Primeiro deploy na instância AWS
+
+1. Crie uma instância EC2 Linux com Docker e Docker Compose, IP público estável (Elastic IP) e acesso SSH. No Security Group, permita TCP 80/443 para o público e SSH 22 apenas do endereço de administração. Não abra 5432, 27017, 8080 ou 8081 ao público. Reserve dois nomes DNS (por exemplo, `movies.seudominio.com` e `users.seudominio.com`) com registros A apontando para o IP da instância.
+2. Copie os arquivos de `deploy/` para uma pasta na instância. Crie a rede `docker network create rede`. Defina `DB_USER` e `DB_PASSWORD` apenas na instância e execute `docker compose -f postgres.compose.yml up -d --wait` nessa pasta. O volume `postgres-filmes-data` preserva os filmes em reinícios.
+3. Configure e execute o banco MongoDB e o serviço Users na mesma rede `rede`, conforme o repositório Users. O contêiner da API deve chamar-se `user-service`; o banco deve estar disponível como `mongo-users`.
+4. Defina `MOVIES_DOMAIN=movies.seudominio.com` e `USERS_DOMAIN=users.seudominio.com` na instância e execute `docker compose -f gateway.compose.yml up -d` na pasta `deploy/`. O Caddy encaminha HTTPS para `movies-service:8081` e `user-service:8080` e renova os certificados automaticamente quando DNS e portas 80/443 estiverem corretos.
+5. Cadastre os secrets da tabela acima no GitHub do repositório Movies. Use `AUTH0_ISSUER_URI=https://dev-xiu6cdl8suiyoyc6.us.auth0.com/`, `AUTH0_AUDIENCE=https://api.plataforma-filmes` e `AUTH0_JWK_SET_URI=https://dev-xiu6cdl8suiyoyc6.us.auth0.com/.well-known/jwks.json`. `FRONTEND_ORIGIN` deve ser o domínio HTTPS final da Vercel, sem `/` no fim. Após um push na branch `main`, acompanhe Actions; o job publica a imagem e atualiza `movies-service` se testes e cobertura passarem.
+6. Confira `https://movies.seudominio.com/filmes` no navegador. A URL `https://users.seudominio.com/users` deve responder `401` sem token, confirmando que HTTPS chega à API protegida. Configure essas duas origens como `MOVIES_API_URL` e `USERS_API_URL` na Vercel e publique o front. Atualize também `FRONTEND_ORIGIN` no repositório Users e execute seu deploy.
+
+O deploy do Movies Service pode ocorrer antes do gateway, mas a Vercel só conseguirá consultar a API quando houver um endereço HTTPS público. O erro atual `Service not found` do Auth0 é uma configuração de audiência no Auth0 e precisa ser resolvido antes de testar login e ações autenticadas.
+
 ## Catálogo, TMDB e avaliações
 
 Defina `TMDB_API_KEY` no ambiente do serviço para habilitar a importação. `GET /catalogo/pesquisar?termo=...` consulta primeiro os títulos existentes no PostgreSQL. Quando não encontra, pesquisa filmes e séries na fonte externa e salva até cinco resultados individualmente, incluindo até cinco links de trailers do YouTube. A chave `tipo:tmdbId` e a combinação título/data evitam duplicatas. Para uma carga inicial de até 40 títulos, configure `CATALOG_SEED_COUNT=20` antes da primeira execução com banco vazio; também é possível chamar `POST /catalogo/populares?quantidade=20` com token Auth0.

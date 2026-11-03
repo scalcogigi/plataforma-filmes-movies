@@ -1,0 +1,25 @@
+services:
+  gateway:
+    image: caddy:2
+    container_name: filmes-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MOVIES_DOMAIN: ${MOVIES_DOMAIN:?Defina MOVIES_DOMAIN}
+      USERS_DOMAIN: ${USERS_DOMAIN:?Defina USERS_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - rede
+
+volumes:
+  caddy-data:
+  caddy-config:
+
+networks:
+  rede:
+    external: true
