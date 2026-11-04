@@ -63,13 +63,13 @@ jobs:
           AUTH0_ISSUER_URI: ${{ secrets.AUTH0_ISSUER_URI }}
           AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
           AUTH0_JWK_SET_URI: ${{ secrets.AUTH0_JWK_SET_URI }}
-          FRONTEND_ORIGIN: ${{ secrets.FRONTEND_ORIGIN }}
+          FRONTEND_ORIGINS: ${{ vars.FRONTEND_ORIGINS || 'https://plataforma-filmes-frontend.vercel.app' }}
         with:
           host: ${{ secrets.AWS_HOST }}
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_PRIVATE_KEY }}
           port: 22
-          envs: DB_USER,DB_PASSWORD,TMDB_API_KEY,AUTH0_ISSUER_URI,AUTH0_AUDIENCE,AUTH0_JWK_SET_URI,FRONTEND_ORIGIN
+          envs: DB_USER,DB_PASSWORD,TMDB_API_KEY,AUTH0_ISSUER_URI,AUTH0_AUDIENCE,AUTH0_JWK_SET_URI,FRONTEND_ORIGINS
           script: |
             set -eu
             docker network inspect rede >/dev/null
@@ -88,10 +88,10 @@ jobs:
               -e DB_USER="$DB_USER" \
               -e DB_PASSWORD="$DB_PASSWORD" \
               -e TMDB_API_KEY="$TMDB_API_KEY" \
-              -e AUTH0_ISSUER_URI="$AUTH0_ISSUER_URI" \
-              -e AUTH0_AUDIENCE="$AUTH0_AUDIENCE" \
-              -e AUTH0_JWK_SET_URI="$AUTH0_JWK_SET_URI" \
-              -e FRONTEND_ORIGIN="$FRONTEND_ORIGIN" \
+              -e AUTH0_ISSUER_URI="${AUTH0_ISSUER_URI:-https://dev-xiu6cdl8suiyoyc6.us.auth0.com/}" \
+              -e AUTH0_AUDIENCE="${AUTH0_AUDIENCE:-https://api.plataforma-filmes}" \
+              -e AUTH0_JWK_SET_URI="${AUTH0_JWK_SET_URI:-https://dev-xiu6cdl8suiyoyc6.us.auth0.com/.well-known/jwks.json}" \
+              -e FRONTEND_ORIGINS="$FRONTEND_ORIGINS" \
               ${{ secrets.DOCKERHUB_USERNAME }}/plataforma-filmes-movies:${{ github.sha }}
             for attempt in $(seq 1 90); do
               if curl --fail --silent http://127.0.0.1:8081/filmes >/dev/null; then

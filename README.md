@@ -1,5 +1,26 @@
 # Plataforma de Filmes — Movies Service
 
+## Atualização de integração: Auth0, CORS e HTTPS
+
+As origens aceitas agora podem ser configuradas com `FRONTEND_ORIGINS`, uma lista separada por vírgulas. `FRONTEND_ORIGIN` singular continua como alternativa local. Exemplo: `http://localhost:5173,https://plataforma-filmes-frontend.vercel.app`. O workflow de produção usa a variável de repositório GitHub `FRONTEND_ORIGINS`, com padrão `https://plataforma-filmes-frontend.vercel.app`; configure essa variável para personalizar o deploy. O secret singular legado não define mais as origens nesse workflow.
+
+Os padrões do serviço são `AUTH0_ISSUER_URI=https://dev-xiu6cdl8suiyoyc6.us.auth0.com/`, `AUTH0_AUDIENCE=https://api.plataforma-filmes` e JWKS desse mesmo tenant. Variáveis de ambiente continuam permitindo sobrescrita. A API com esse Identifier e assinatura RS256 deve existir no Auth0; callbacks e origens da aplicação SPA também precisam estar cadastrados no painel.
+
+O Caddyfile exige HTTPS para os dois nomes DNS. Defina `MOVIES_DOMAIN` e `USERS_DOMAIN` como nomes sem protocolo ou caminho, confirme DNS e libere portas 80/443 na AWS. Atualize o gateway antes de publicar o frontend que agora usa rewrites HTTPS:
+
+```bash
+docker compose -f deploy/gateway.compose.yml up -d --force-recreate gateway
+MOVIES_DOMAIN=filmes-plataformas-filmes.duckdns.org \
+USERS_DOMAIN=user-plataformas-filmes.duckdns.org \
+FRONTEND_ORIGIN=https://plataforma-filmes-frontend.vercel.app \
+sh deploy/verify-public.sh
+```
+
+Execute na pasta apropriada e carregue as variáveis de ambiente do servidor. O script valida certificados HTTPS, leitura pública de filmes, 401 de Users sem token e preflights CORS de ambos. Não desative a validação TLS. Certificados e regras da instância não são criados por editar o repositório.
+
+Foram adicionados testes de CORS que distinguem 401 de autenticação de 403 por origem recusada. O catálogo continua público; rotas de gravação continuam exigindo JWT válido. Uma política de administradores/permissões do catálogo precisa ser definida antes de restringir essas operações por papel.
+
+
 ## Deploy na AWS
 
 O workflow `.github/workflows/deploy.yml` executa os testes em pull requests e na branch

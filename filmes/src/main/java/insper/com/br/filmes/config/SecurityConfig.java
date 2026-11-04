@@ -18,6 +18,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+import java.util.Arrays;
 
 @Configuration
 public class SecurityConfig {
@@ -92,14 +93,18 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${app.cors.allowed-origin}")
-            String frontendOrigin
+            @Value("${app.cors.allowed-origins:${app.cors.allowed-origin}}")
+            String frontendOrigins
     ) {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of(frontendOrigin)
+                Arrays.stream(frontendOrigins.split(","))
+                        .map(String::trim)
+                        .filter(origin -> !origin.isEmpty())
+                        .distinct()
+                        .toList()
         );
 
         configuration.setAllowedMethods(

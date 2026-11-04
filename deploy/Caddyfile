@@ -1,7 +1,7 @@
-{$MOVIES_DOMAIN} {
+https://{$MOVIES_DOMAIN} {
     reverse_proxy movies-service:8081
 }
 
-{$USERS_DOMAIN} {
+https://{$USERS_DOMAIN} {
     reverse_proxy user-service:8080
 }
